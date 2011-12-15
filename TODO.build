@@ -1,0 +1,58 @@
+DONE: dependencies for .core
+DONE: jarjar for .asm
+DONE: build .beans
+TODO: un-@Ignore CallbacksSecurityTests (see TODO within)
+DONE: build .aop
+DONE: build .expression
+DONE: build .instrument
+DONE: build .instrument.tomcat
+DONE: build .context
+DONE: build .transaction
+DONE: build .oxm
+TODO: integrate xjc for .oxm
+TODO: remove org.springframework.oxm/target/test-classes
+TODO: fix JibxMarshallerTests and JibxUnmarshallerTests (see TODOs within)
+DONE: build .jms
+DONE: build .jdbc
+DONE: build .context.support
+DONE: build .web
+TODO: fix and un-@Ignore JaxWsSupportTests (see TODO within)
+DONE: build .orm
+TODO: fix and un-@Ignore OpenJpaEntityManagerFactoryWithAspectJWeavingIntegrationTests and TopLinkMultiEntityManagerFactoryIntegrationTests (see TODOs within)
+DONE: build .web.servlet
+DONE: build .web.portlet
+DONE: build .web.struts
+DONE: build .test
+TODO: fix and un-@Ignore tests in .test
+TODO: un-comment and fix compilation errors in ReflectionTestUtilsTests#invokeMethodWithReturnValueWithAutoboxingAndUnboxing
+DONE: build .aspects
+TODO: build .spring-library -- ?
+DONE: build .integration-tests
+TODO: fix and un-@Ignore HibernateSessionFactoryConfigurationTests (see TODO within)
+DONE: produce source jars
+
+TODO: compare generated pom with manually maintained pom
+
+TODO: integrate bundlor plugin
+TODO: support optional dependencies (GRADLE-1749)
+TODO: support provided dependencies
+
+TODO: add license files, changelogs, readme (verify this is already done)
+TODO: META-INF/INDEX.LIST -- ?
+
+TODO: categorize (with @Rule or otherwise) 'timed' tests
+
+TODO: rename module dirs to spring-xyz; remove rename logic from settings.xml
+TODO: remove all ant artifacts
+TODO: enable -Xlint:all; fix warnings
+TODO: ultimately get rid of .integration-tests? (depend on other modules' test classpaths)
+TODO: normalize ' vs " in build script
+
+TODO: deal with com.springsource dependencies (won't fly in maven central)
+
+TODO: GRADLE req: need a way to visualize required deps vs. optional (a la `gradle dependencies`)
+TODO: GRADLE req: for depth limit on `gradle dependencies`
+TODO: GRADLE req: for configuration filter on `gradle dependencies` (e.g. for compile, testCompile)
+
+TODO: test with gradle STS plugin
+TODO: test in IDEA

@@ -1,0 +1,20 @@
+Keep it as simple as possible in order to avoid the need for plugins
+
+e.g.: don't allow for building with maven.  don't generate 'source' poms.
+
+keep all extraneous tasks out of the main 'build' flow
+
+What must be done in order to switch?
+
+* Optional dependencies reflected in POMs
+* Comparison of POMs
+* Test in IDEA
+* Generate equivalent poms to current snapshots
+* Bundlor-generated manifests
+
+What must be done before the next release (3.1 RC1)?
+
+* Set up release management for artifactory gradle bamboo plugin
+* Javadoc uploads
+* Ref doc generation
+* Ref doc upload
