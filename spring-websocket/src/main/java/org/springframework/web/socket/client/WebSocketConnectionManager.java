@@ -21,9 +21,11 @@ import java.util.List;
 
 import org.springframework.context.SmartLifecycle;
 import org.springframework.http.HttpHeaders;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.client.support.ReconnectWebSocketHandlerDecorator;
 import org.springframework.web.socket.support.ExceptionWebSocketHandlerDecorator;
 import org.springframework.web.socket.support.LoggingWebSocketHandlerDecorator;
 
@@ -44,12 +46,18 @@ public class WebSocketConnectionManager extends ConnectionManagerSupport {
 	private final boolean syncClientLifecycle;
 
 
-	public WebSocketConnectionManager(WebSocketClient client,
-			WebSocketHandler webSocketHandler, String uriTemplate, Object... uriVariables) {
+	public WebSocketConnectionManager(WebSocketClient client, WebSocketHandler webSocketHandler,
+			String uriTemplate, Object... uriVariables) {
+
+		this(client, webSocketHandler, null, uriTemplate, uriVariables);
+	}
+
+	public WebSocketConnectionManager(WebSocketClient client, WebSocketHandler webSocketHandler,
+			TaskScheduler reconnectScheduler, String uriTemplate, Object... uriVariables) {
 
 		super(uriTemplate, uriVariables);
 		this.client = client;
-		this.webSocketHandler = decorateWebSocketHandler(webSocketHandler);
+		this.webSocketHandler = decorateWebSocketHandler(webSocketHandler, reconnectScheduler);
 		this.syncClientLifecycle = ((client instanceof SmartLifecycle) && !((SmartLifecycle) client).isRunning());
 	}
 
@@ -58,10 +66,15 @@ public class WebSocketConnectionManager extends ConnectionManagerSupport {
 	 * <p>
 	 * By default {@link ExceptionWebSocketHandlerDecorator} and
 	 * {@link LoggingWebSocketHandlerDecorator} are applied are added.
+	 * @param reconnectScheduler ...
 	 */
-	protected WebSocketHandler decorateWebSocketHandler(WebSocketHandler handler) {
+	protected WebSocketHandler decorateWebSocketHandler(WebSocketHandler handler, TaskScheduler scheduler) {
 		handler = new ExceptionWebSocketHandlerDecorator(handler);
-		return new LoggingWebSocketHandlerDecorator(handler);
+		if (scheduler != null) {
+			handler = new ReconnectWebSocketHandlerDecorator(handler, new ConnectCallback(), scheduler);
+		}
+		handler = new LoggingWebSocketHandlerDecorator(handler);
+		return handler;
 	}
 
 	public void setSubProtocols(List<String> subProtocols) {
@@ -101,11 +114,28 @@ public class WebSocketConnectionManager extends ConnectionManagerSupport {
 	@Override
 	protected void closeConnection() throws Exception {
 		this.webSocketSession.close();
+		this.webSocketSession = null;
 	}
 
 	@Override
 	protected boolean isConnected() {
 		return ((this.webSocketSession != null) && (this.webSocketSession.isOpen()));
+	}
+
+
+	private final class ConnectCallback implements Runnable {
+
+		@Override
+		public void run() {
+			try {
+				openConnection();
+			}
+			catch (Throwable t) {
+				if (logger.isInfoEnabled()) {
+					logger.info("Failed to reconnect to " + getUri() + ", " + t.getMessage());
+				}
+			}
+		}
 	}
 
 }
