@@ -63,12 +63,15 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Test fixture for the configuration in websocket-config-handlers*.xml test files.
+ * Test fixture for HandlersBeanDefinitionParser.
+ * See test configuration files websocket-config-handlers*.xml.
+ *
  * @author Brian Clozel
  */
-public class HandlerMappingsBeanDefinitionParserTests {
+public class HandlersBeanDefinitionParserTests {
 
 	private GenericWebApplicationContext appContext;
+
 
 	@Before
 	public void setup() {
@@ -208,7 +211,7 @@ public class HandlerMappingsBeanDefinitionParserTests {
 
 	private void loadBeanDefinitions(String fileName) {
 		XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(appContext);
-		ClassPathResource resource = new ClassPathResource(fileName, HandlerMappingsBeanDefinitionParserTests.class);
+		ClassPathResource resource = new ClassPathResource(fileName, HandlersBeanDefinitionParserTests.class);
 		reader.loadBeanDefinitions(resource);
 		appContext.refresh();
 	}

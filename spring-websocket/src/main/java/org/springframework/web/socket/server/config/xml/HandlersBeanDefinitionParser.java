@@ -26,7 +26,6 @@ import org.springframework.beans.factory.support.ManagedMap;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.beans.factory.xml.BeanDefinitionParser;
 import org.springframework.beans.factory.xml.ParserContext;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.util.xml.DomUtils;
 import org.springframework.web.servlet.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.socket.server.support.WebSocketHttpRequestHandler;
@@ -36,29 +35,30 @@ import org.w3c.dom.Element;
 import java.util.Arrays;
 import java.util.List;
 
+
 /**
  * A {@link BeanDefinitionParser} that provides the configuration for the
- * {@code <handlers/>} WebSocket namespace element.
- *
- * <p>This class registers one {@link org.springframework.web.servlet.HandlerMapping}:
- * a {@link org.springframework.web.servlet.handler.SimpleUrlHandlerMapping} ordered at
- * 1 for mapping requests to {@link org.springframework.web.socket.WebSocketHandler}s.
- * </p>
- *
+ * {@code <websocket:handlers/>} namespace element. It registers a Spring MVC
+ * {@link org.springframework.web.servlet.handler.SimpleUrlHandlerMapping}
+ * to map HTTP WebSocket handshake requests to
+ * {@link org.springframework.web.socket.WebSocketHandler}s.
  *
  * @author Brian Clozel
  * @since 4.0
  */
-public class HandlersBeanDefinitionParser extends AbstractWebSocketBeanDefinitionParser {
+public class HandlersBeanDefinitionParser implements BeanDefinitionParser {
 
-	protected static final String TASK_SCHEDULER_BEAN_NAME = "handlersSockJsTaskScheduler";
+	private static final String SOCK_JS_SCHEDULER_NAME = "SockJsScheduler";
+
+	private static final int DEFAULT_MAPPING_ORDER = 1;
+
 
 	@Override
-	public BeanDefinition parse(Element element, ParserContext parserContext) {
+	public BeanDefinition parse(Element element, ParserContext parserCxt) {
 
-		Object source = parserContext.extractSource(element);
+		Object source = parserCxt.extractSource(element);
 		CompositeComponentDefinition compDefinition = new CompositeComponentDefinition(element.getTagName(), source);
-		parserContext.pushContainingComponent(compDefinition);
+		parserCxt.pushContainingComponent(compDefinition);
 
 		String orderAttribute = element.getAttribute("order");
 		int order = orderAttribute.isEmpty() ? DEFAULT_MAPPING_ORDER : Integer.valueOf(orderAttribute);
@@ -67,46 +67,34 @@ public class HandlersBeanDefinitionParser extends AbstractWebSocketBeanDefinitio
 		handlerMappingDef.setSource(source);
 		handlerMappingDef.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
 		handlerMappingDef.getPropertyValues().add("order", order);
-		String handlerMappingName = parserContext.getReaderContext().registerWithGeneratedName(handlerMappingDef);
+		String handlerMappingName = parserCxt.getReaderContext().registerWithGeneratedName(handlerMappingDef);
 
-		RuntimeBeanReference handshakeHandlerRef = registerHandshakeHandler(element, parserContext, source);
-		ManagedList<?> interceptorsList = registerInterceptors(element, parserContext);
-		RuntimeBeanReference sockJsServiceRef = registerSockJsService(element, parserContext, source);
+		RuntimeBeanReference handshakeHandler = WebSocketNamespaceUtils.registerHandshakeHandler(element, parserCxt, source);
+		Element interceptorsElement = DomUtils.getChildElementByTagName(element, "handshake-interceptors");
+		ManagedList<?> interceptors = WebSocketNamespaceUtils.parseBeanSubElements(interceptorsElement, parserCxt);
+		RuntimeBeanReference sockJsServiceRef =
+				WebSocketNamespaceUtils.registerSockJsService(element, SOCK_JS_SCHEDULER_NAME, parserCxt, source);
 
-		HandlerMappingStrategy strategy = createHandlerMappingStrategy(sockJsServiceRef, handshakeHandlerRef, interceptorsList);
+		HandlerMappingStrategy strategy = createHandlerMappingStrategy(sockJsServiceRef, handshakeHandler, interceptors);
 
 		List<Element> mappingElements = DomUtils.getChildElementsByTagName(element, "mapping");
 		ManagedMap<String, Object> urlMap = new ManagedMap<String, Object>();
 		urlMap.setSource(source);
 
 		for(Element mappingElement : mappingElements) {
-			urlMap.putAll(strategy.createMappings(mappingElement, parserContext));
+			urlMap.putAll(strategy.createMappings(mappingElement, parserCxt));
 		}
 		handlerMappingDef.getPropertyValues().add("urlMap", urlMap);
 
-		parserContext.registerComponent(new BeanComponentDefinition(handlerMappingDef, handlerMappingName));
-		parserContext.popAndRegisterContainingComponent();
+		parserCxt.registerComponent(new BeanComponentDefinition(handlerMappingDef, handlerMappingName));
+		parserCxt.popAndRegisterContainingComponent();
 		return null;
 	}
 
-	protected RuntimeBeanReference registerDefaultTaskScheduler(ParserContext parserContext, Object source) {
 
-		if (!parserContext.getRegistry().containsBeanDefinition(TASK_SCHEDULER_BEAN_NAME)) {
-			RootBeanDefinition taskSchedulerDef = new RootBeanDefinition(ThreadPoolTaskScheduler.class);
-			taskSchedulerDef.setSource(source);
-			taskSchedulerDef.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
-			taskSchedulerDef.getPropertyValues().add("threadNamePrefix","SockJS-");
-			parserContext.getRegistry().registerBeanDefinition(TASK_SCHEDULER_BEAN_NAME, taskSchedulerDef);
-			parserContext.registerComponent(new BeanComponentDefinition(taskSchedulerDef, TASK_SCHEDULER_BEAN_NAME));
-		}
+	private interface HandlerMappingStrategy {
 
-		return new RuntimeBeanReference(TASK_SCHEDULER_BEAN_NAME);
-	}
-
-	private ManagedList<?> registerInterceptors(Element element, ParserContext parserContext) {
-		Element interceptorsElement = DomUtils.getChildElementByTagName(element, "handshake-interceptors");
-
-		return parseBeanSubElements(interceptorsElement, parserContext);
+		public ManagedMap<String, Object> createMappings(Element mappingElement, ParserContext parserContext);
 	}
 
 	private HandlerMappingStrategy createHandlerMappingStrategy(

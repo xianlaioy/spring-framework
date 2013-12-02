@@ -15,6 +15,6 @@
  */
 
 /**
- * Support for the {@code <websocket:handlers>} XML namespace element.
+ * Support for the {@code <websocket:message-broker>} XML namespace element.
  */
-package org.springframework.web.socket.server.config.xml;
+package org.springframework.web.socket.messaging.config.xml;

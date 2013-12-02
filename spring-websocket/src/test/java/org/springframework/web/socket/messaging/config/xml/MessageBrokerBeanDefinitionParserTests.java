@@ -234,11 +234,9 @@ public class MessageBrokerBeanDefinitionParserTests {
 		AbstractSubscribableChannel channel = this.appContext.getBean(channelName, AbstractSubscribableChannel.class);
 
 		for (Class<? extends  MessageHandler> subscriberType : subscriberTypes) {
-			Map<String, ? extends MessageHandler> beanMap = this.appContext.getBeansOfType(subscriberType);
-			assertTrue("No subsription for " + subscriberType, beanMap.size() > 0);
-			for (MessageHandler subscriber : beanMap.values()) {
-				assertTrue(channel.hasSubscription(subscriber));
-			}
+			MessageHandler subscriber = this.appContext.getBean(subscriberType);
+			assertNotNull("No subsription for " + subscriberType, subscriber);
+			assertTrue(channel.hasSubscription(subscriber));
 		}
 
 		assertEquals(interceptorCount, channel.getInterceptors().size());
